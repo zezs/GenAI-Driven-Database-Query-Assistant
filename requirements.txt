@@ -1,6 +1,7 @@
 streamlit
 langchain
 langchain-openai
+langchain_community 
 langchain-groq
 mysql-connector-python
 mysql
