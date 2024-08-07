@@ -5,6 +5,7 @@ import streamlit as st
 
 load_dotenv()
 
+# session state variable
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = [AIMessage(content="Hello! I'm a SQL assistant. ASk me anything about your database."),]
 
@@ -49,4 +50,16 @@ for message in st.session_state.chat_history:
         with st.chat_message("Human"):
             st.markdown(message.content)
 
-st.chat_input("Type a message...")
+
+user_query = st.chat_input("Type a message...")
+if user_query is not None and user_query.strip() != "":
+    # adding to chat history
+    st.session_state.chat_history.append(HumanMessage(content=user_query))
+
+    # displaying user query// with manages the lifecycle of an object
+    with st.chat_message("Human"):
+        st.markdown(user_query)
+
+    with st.chat_message("AI"):
+        response = "Trigerring response func.."
+        st.markdown(response)
