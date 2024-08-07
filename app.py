@@ -47,7 +47,6 @@ def get_sql_chain(db):
         """
     
     prompt = ChatPromptTemplate.from_template(template)
-
     llm = ChatOpenAI(model="gpt-4")
 
     def get_schema(_):
@@ -58,6 +57,33 @@ def get_sql_chain(db):
     return sql_chain
 
 
+def get_response(user_query: str, db: SQLDatabase, chat_history: list):
+    sql_chain = get_sql_chain(db)
+    template = """
+        You are a data analyst at a company. You are interacting with a user who is asking you questions about the company's database.
+        Based on the table schema below, question, sql query, and sql response, write a natural language response.
+        <SCHEMA>{schema}</SCHEMA>
+
+        Conversation History: {chat_history}
+        SQL Query: <SQL>{query}</SQL>
+        User Question: {question}
+        SQL Response: {response}
+        """
+    prompt = ChatPromptTemplate.from_template(template)
+    llm = ChatOpenAI(model="gpt-4")
+
+    response_chain =  (
+        RunnablePassthrough.assign(query=sql_chain)
+                            .assign(schema=lambda _: db.get_table_info(),
+                            response=lambda vars: db.run(vars["query"]),
+                                                    )
+                            | prompt
+                            | llm
+                            | StrOutputParser()
+    )
+
+    return response_chain.invoke({"question": user_query, "chat_history": chat_history})
+    
 
 
 with st.sidebar:
@@ -69,7 +95,7 @@ with st.sidebar:
     st.text_input("Port", value="3306", key="Port")
     st.text_input("User", value="root", key="User")
     st.text_input("Password", type="password", value="admin", key="Password")
-    st.text_input("Database", value="World", key="Database")
+    st.text_input("Database", value="Chinook", key="Database")
 
     if st.button("Connect"):
         with st.spinner("Connecting to database..."):
@@ -103,11 +129,12 @@ if user_query is not None and user_query.strip() != "":
         st.markdown(user_query)
 
     with st.chat_message("AI"):
-        sql_chain = get_sql_chain(st.session_state.db)
-        response = sql_chain.invoke({
-            "chat_history": st.session_state.chat_history,  # scheam has already been populated in func getsqlchain
-            "question" : user_query
-        })
+        response = get_response(user_query, st.session_state.db, st.session_state.chat_history)
+        # sql_chain = get_sql_chain(st.session_state.db)
+        # response = sql_chain.invoke({
+        #     "chat_history": st.session_state.chat_history,  # scheam has already been populated in func getsqlchain
+        #     "question" : user_query
+        # })
         st.markdown(response)
 
     st.session_state.chat_history.append(AIMessage(content=response))
