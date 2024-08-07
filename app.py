@@ -1,8 +1,12 @@
 from dotenv import load_dotenv
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_community.utilities import SQLDatabase
 import streamlit as st
 
 load_dotenv()
+
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = [AIMessage(content="Hello! I'm a SQL assistant. ASk me anything about your database."),]
 
 def init_database(user: str, password: str, host: str, port: str, database: str) -> SQLDatabase:
     # connceting to mysql db using mysql-connector-python  driver
@@ -35,5 +39,14 @@ with st.sidebar:
             )
             st.session_state.db = db
             st.success("Connected to database!")
+
+# printing out messages/ chat
+for message in st.session_state.chat_history:
+    if isinstance(message, AIMessage):
+        with st.chat_message("AI"):
+            st.markdown(message.content)
+    elif isinstance(message, HumanMessage):
+        with st.chat_message("Human"):
+            st.markdown(message.content)
 
 st.chat_input("Type a message...")
