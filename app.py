@@ -75,8 +75,9 @@ def get_response(user_query: str, db: SQLDatabase, chat_history: list):
     response_chain =  (
         RunnablePassthrough.assign(query=sql_chain)
                             .assign(schema=lambda _: db.get_table_info(),
+                            # response=lambda vars: print("variables: ", vars),
                             response=lambda vars: db.run(vars["query"]),
-                                                    )
+                            )
                             | prompt
                             | llm
                             | StrOutputParser()
